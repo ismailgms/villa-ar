@@ -1,0 +1,98 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Villa İçinde Dolaş</title>
+    <style>
+      body { margin: 0; overflow: hidden; }
+      canvas { display: block; }
+      #instructions {
+        position: absolute;
+        top: 20px;
+        width: 100%;
+        text-align: center;
+        color: white;
+        font-size: 20px;
+        z-index: 1;
+      }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.1/examples/js/loaders/GLTFLoader.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.1/examples/js/controls/PointerLockControls.min.js"></script>
+  </head>
+  <body>
+    <div id="instructions">Tıklayıp WASD + Mouse ile dolaşabilirsin</div>
+    <script>
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xaaaaaa);
+
+      const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+      camera.position.set(0, 2, 10);
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.body.appendChild(renderer.domElement);
+
+      const light = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
+      scene.add(light);
+
+      const floor = new THREE.Mesh(
+        new THREE.PlaneGeometry(200, 200),
+        new THREE.MeshStandardMaterial({ color: 0x999999 })
+      );
+      floor.rotation.x = -Math.PI / 2;
+      floor.receiveShadow = true;
+      scene.add(floor);
+
+      const loader = new THREE.GLTFLoader();
+      loader.load('villa.glb', function (gltf) {
+        const villa = gltf.scene;
+        villa.position.set(0, 0, 0);
+        scene.add(villa);
+        console.log("villa yüklendi", villa);
+      }, undefined, function (error) {
+        console.error("villa yüklenemedi", error);
+      });
+
+      const controls = new THREE.PointerLockControls(camera, document.body);
+      document.body.addEventListener('click', () => controls.lock());
+
+      scene.add(controls.getObject());
+      controls.getObject().position.set(0, 2, 10);
+
+      const velocity = new THREE.Vector3();
+      const direction = new THREE.Vector3();
+      const keys = {};
+
+      document.addEventListener('keydown', (e) => keys[e.code] = true);
+      document.addEventListener('keyup', (e) => keys[e.code] = false);
+
+      function animate() {
+        requestAnimationFrame(animate);
+
+        direction.z = Number(keys['KeyW']) - Number(keys['KeyS']);
+        direction.x = Number(keys['KeyD']) - Number(keys['KeyA']);
+        direction.normalize();
+
+        const speed = 0.1;
+        if (controls.isLocked) {
+          velocity.x = direction.x * speed;
+          velocity.z = direction.z * speed;
+          controls.moveRight(velocity.x);
+          controls.moveForward(velocity.z);
+        }
+
+        renderer.render(scene, camera);
+      }
+
+      animate();
+
+      window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+    </script>
+  </body>
+</html>
